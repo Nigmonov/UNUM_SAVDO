@@ -1,0 +1,54 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Backend environment variables - SECRET!
+backend/.env
+.env
+.env.*
+
+# Lekin example fayllar GitHubga chiqsin
+!.env.example
+!backend/.env.example
+
+# SQLite database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+
+# Frontend environment variables
+frontend/.env.local
+frontend/.env
+frontend/.env.*
+
+# Lekin example fayl chiqsin
+!frontend/.env.local.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
