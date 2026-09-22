@@ -9,103 +9,84 @@ const API =
 
 export default function Home() {
   const router = useRouter();
-  const [status, setStatus] = useState('Telegram tekshirilmoqda...');
+  const [status, setStatus] = useState('Telegram orqali kirilmoqda...');
 
   useEffect(() => {
     let cancelled = false;
 
+    function loadTelegramScript() {
+      return new Promise((resolve, reject) => {
+        // Script allaqachon yuklangan bo'lsa
+        if (window.Telegram?.WebApp) {
+          resolve();
+          return;
+        }
+
+        const existing = document.querySelector(
+          'script[src="https://telegram.org/js/telegram-web-app.js"]'
+        );
+
+        if (existing) {
+          existing.addEventListener('load', resolve, { once: true });
+          existing.addEventListener('error', reject, { once: true });
+          return;
+        }
+
+        const script = document.createElement('script');
+
+        script.src =
+          'https://telegram.org/js/telegram-web-app.js';
+
+        script.async = true;
+
+        script.onload = () => resolve();
+
+        script.onerror = () =>
+          reject(new Error('Telegram WebApp script yuklanmadi'));
+
+        document.head.appendChild(script);
+      });
+    }
+
     async function login() {
       try {
-        setStatus('Telegram ulanmoqda...');
+        setStatus('Telegram tekshirilmoqda...');
 
-        // Telegram WebApp scriptini yuklash
-        if (!window.Telegram?.WebApp) {
-          await new Promise((resolve, reject) => {
-            const existing = document.querySelector(
-              'script[src="https://telegram.org/js/telegram-web-app.js"]'
-            );
+        await loadTelegramScript();
 
-            if (existing) {
-              existing.addEventListener('load', resolve, {
-                once: true,
-              });
+        if (cancelled) return;
 
-              // Script allaqachon yuklangan bo‘lsa
-              if (window.Telegram?.WebApp) {
-                resolve();
-              }
-
-              return;
-            }
-
-            const script = document.createElement('script');
-
-            script.src =
-              'https://telegram.org/js/telegram-web-app.js';
-
-            script.async = true;
-
-            script.onload = resolve;
-
-            script.onerror = () => {
-              reject(
-                new Error(
-                  'Telegram WebApp scriptini yuklab bo‘lmadi'
-                )
-              );
-            };
-
-            document.head.appendChild(script);
-          });
-        }
-
-        // Telegram API paydo bo‘lishini kutamiz
-        let tg = null;
-
-        for (let i = 0; i < 50; i++) {
-          tg = window.Telegram?.WebApp;
-
-          if (tg) {
-            break;
-          }
-
-          await new Promise((resolve) =>
-            setTimeout(resolve, 100)
-          );
-        }
+        const tg = window.Telegram?.WebApp;
 
         if (!tg) {
           throw new Error(
-            'Telegram WebApp topilmadi. Ilovani Telegram ichidan Open App orqali oching.'
+            'Telegram WebApp topilmadi'
           );
         }
 
         tg.ready();
         tg.expand();
 
-        const initData = tg.initData;
+        console.log('Telegram version:', tg.version);
+        console.log('Telegram platform:', tg.platform);
+        console.log('Telegram initData:', tg.initData);
 
-        console.log(
-          'Telegram WebApp mavjud:',
-          !!tg
-        );
-
-        console.log(
-          'initData mavjud:',
-          !!initData
-        );
-
-        if (!initData) {
-          throw new Error(
-            'Telegram initData kelmadi. Botdagi Open App orqali qayta oching.'
+        if (!tg.initData) {
+          setStatus(
+            "Telegram ma'lumotlari kelmadi. Bot ichidagi Open App orqali oching."
           );
+
+          console.error(
+            'Telegram initData bo‘sh:',
+            tg
+          );
+
+          return;
         }
 
-        if (cancelled) return;
+        setStatus('Hisob tekshirilmoqda...');
 
-        setStatus('Telegram orqali kirilmoqda...');
-
-        // Backendga Telegram initData yuborish
+        // Telegram login
         const authResponse = await fetch(
           `${API}/auth/telegram-miniapp`,
           {
@@ -114,104 +95,83 @@ export default function Home() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              init_data: initData,
+              init_data: tg.initData,
             }),
           }
         );
 
-        const authData =
-          await authResponse.json().catch(() => ({}));
-
-        console.log(
-          'Telegram auth response:',
-          authResponse.status,
-          authData
-        );
+        const authData = await authResponse.json();
 
         if (!authResponse.ok) {
           throw new Error(
             authData.detail ||
-              'Telegram orqali kirib bo‘lmadi'
+              'Telegram orqali kirishda xatolik'
           );
         }
 
-        if (!authData.access_token) {
+        const token = authData.access_token;
+
+        if (!token) {
           throw new Error(
-            'Server access token qaytarmadi'
+            'Access token backenddan kelmadi'
           );
         }
 
-        // JWT saqlaymiz
         localStorage.setItem(
           'access_token',
-          authData.access_token
+          token
         );
 
-        setStatus('Do‘kon maʼlumotlari tekshirilmoqda...');
+        setStatus("Do'kon tekshirilmoqda...");
 
-        // Do‘konni tekshiramiz
+        // Do'konni tekshirish
         const storeResponse = await fetch(
           `${API}/stores/me`,
           {
-            method: 'GET',
             headers: {
-              Authorization:
-                `Bearer ${authData.access_token}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        const storeData =
-          await storeResponse.json().catch(() => ({}));
-
-        console.log(
-          'Store response:',
-          storeResponse.status,
-          storeData
-        );
-
-        // Do‘kon mavjud
         if (storeResponse.ok) {
+          const store = await storeResponse.json();
+
           localStorage.setItem(
             'unum_store_id',
-            String(storeData.id)
+            String(store.id)
           );
 
-          setStatus('Dashboard ochilmoqda...');
-
           router.replace('/dashboard');
-
           return;
         }
 
-        // Do‘kon hali yaratilmagan
         if (storeResponse.status === 404) {
           localStorage.removeItem(
             'unum_store_id'
           );
 
-          setStatus('Do‘kon yaratish sahifasi ochilmoqda...');
-
           router.replace('/onboarding');
-
           return;
         }
 
+        const errorData =
+          await storeResponse.json().catch(() => ({}));
+
         throw new Error(
-          storeData.detail ||
-            'Do‘kon maʼlumotini olishda xatolik'
+          errorData.detail ||
+            "Do'konni tekshirishda xatolik"
         );
 
       } catch (error) {
         console.error(
-          'UNUM Telegram login error:',
+          'UNUM SAVDO login error:',
           error
         );
 
         if (!cancelled) {
           setStatus(
-            error?.message ||
-              'Telegram orqali kirishda xatolik yuz berdi'
+            `Xatolik: ${error.message}`
           );
         }
       }
@@ -231,40 +191,23 @@ export default function Home() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        background: '#f4f8ed',
+        background:
+          'linear-gradient(135deg, #07111f, #0d2138)',
+        color: '#fff',
+        padding: '20px',
       }}
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '420px',
           textAlign: 'center',
-          padding: '40px 24px',
+          maxWidth: '500px',
         }}
       >
-        <div
-          style={{
-            width: '64px',
-            height: '64px',
-            margin: '0 auto 20px',
-            borderRadius: '18px',
-            background: '#07130f',
-            color: '#baff00',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            fontWeight: '800',
-          }}
-        >
-          U
-        </div>
-
         <h1
           style={{
-            marginBottom: '12px',
-            fontSize: '28px',
+            fontSize: '40px',
+            fontWeight: '800',
+            marginBottom: '16px',
           }}
         >
           UNUM SAVDO
@@ -272,8 +215,8 @@ export default function Home() {
 
         <p
           style={{
-            fontSize: '16px',
-            color: '#5d6b63',
+            fontSize: '18px',
+            opacity: 0.85,
           }}
         >
           {status}
