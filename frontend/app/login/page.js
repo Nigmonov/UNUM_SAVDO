@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API = 'https://unum-savdo-t1lg.vercel.app/api';
+const API =const API =const API =
+  'https://unum-savdo-t1lg-lcv1ybzf-dilshodnigmonov8-2576.vercel.app/api';
+
 
 export default function Home() {
   const router = useRouter();
