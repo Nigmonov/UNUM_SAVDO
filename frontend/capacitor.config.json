@@ -1,0 +1,9 @@
+{
+  "appId": "uz.unumsavdo.app",
+  "appName": "UNUM SAVDO",
+  "webDir": "public",
+  "server": {
+    "url": "https://unumsavdo.vercel.app",
+    "cleartext": false
+  }
+}

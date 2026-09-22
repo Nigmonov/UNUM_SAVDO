@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.database import Base, engine
 from app import models  # noqa
 from app.api import auth, stores, products, sales, dashboard
+from app.api.agent import router as agent_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +22,7 @@ app.include_router(stores.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
 app.include_router(sales.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(agent_router, prefix="/api")
 
 @app.get("/")
 def root():

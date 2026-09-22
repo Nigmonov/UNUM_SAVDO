@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">UNUM SAVDO</string>
+    <string name="title_activity_main">UNUM SAVDO</string>
+    <string name="package_name">uz.unumsavdo.app</string>
+    <string name="custom_url_scheme">uz.unumsavdo.app</string>
+</resources>

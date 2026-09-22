@@ -1,0 +1,5 @@
+BACKEND_URL = "http://127.0.0.1:8000/api"
+
+AGENT_NAME = "UNUM Agent"
+
+HEARTBEAT_INTERVAL = 10

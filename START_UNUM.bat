@@ -7,8 +7,8 @@ echo          UNUM SAVDO ISHGA TUSHMOQDA
 echo ==========================================
 echo.
 
-if not exist ".venv\Scripts\python.exe" (
-  echo [XATO] .venv topilmadi.
+if not exist "venv\Scripts\python.exe" (
+  echo [XATO] venv topilmadi.
   echo Avval INSTALL_UNUM.bat ni bir marta ishga tushiring.
   pause
   exit /b 1

@@ -1,7 +1,7 @@
 export const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 export function authHeaders(json = false) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('unum_token') : '';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : '';
   const headers = { Authorization: `Bearer ${token}` };
   if (json) headers['Content-Type'] = 'application/json';
   return headers;
