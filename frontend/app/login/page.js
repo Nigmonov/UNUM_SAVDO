@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API =const API =const API =
+const API =
   'https://unum-savdo-t1lg-lcv1ybzf-dilshodnigmonov8-2576.vercel.app/api';
-
 
 export default function Home() {
   const router = useRouter();
@@ -25,10 +24,6 @@ export default function Home() {
       try {
         log(`Frontend: ${window.location.origin}`);
         log(`API: ${API}`);
-
-        // ==========================================
-        // 1. TELEGRAM WEB APP
-        // ==========================================
 
         setStatus('Telegram tekshirilmoqda...');
 
@@ -55,10 +50,6 @@ export default function Home() {
           );
         }
 
-        // ==========================================
-        // 2. BACKEND CONNECTION TEST
-        // ==========================================
-
         setStatus('Backend tekshirilmoqda...');
 
         log('Backend GET / so‘rovi yuborilmoqda...');
@@ -66,15 +57,12 @@ export default function Home() {
         let healthResponse;
 
         try {
-          healthResponse = await fetch(
-            `${API}/`,
-            {
-              method: 'GET',
-              headers: {
-                Accept: 'application/json',
-              },
-            }
-          );
+          healthResponse = await fetch(`${API}/`, {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+            },
+          });
         } catch (error) {
           log(`BACKEND NETWORK ERROR: ${error.message}`);
 
@@ -100,11 +88,9 @@ export default function Home() {
           );
         }
 
-        // ==========================================
-        // 3. TELEGRAM AUTH
-        // ==========================================
-
-        setStatus('Telegram akkaunt tekshirilmoqda...');
+        setStatus(
+          'Telegram akkaunt tekshirilmoqda...'
+        );
 
         log(
           'POST /auth/telegram-miniapp yuborilmoqda...'
@@ -176,10 +162,6 @@ export default function Home() {
           token
         );
 
-        // ==========================================
-        // 4. STORE CHECK
-        // ==========================================
-
         setStatus("Do'kon tekshirilmoqda...");
 
         log('GET /stores/me yuborilmoqda...');
@@ -218,10 +200,6 @@ export default function Home() {
           `STORE response: ${storeText.slice(0, 500)}`
         );
 
-        // ==========================================
-        // 5. DO'KON BOR
-        // ==========================================
-
         if (storeResponse.ok) {
           const store = JSON.parse(storeText);
 
@@ -245,10 +223,6 @@ export default function Home() {
           return;
         }
 
-        // ==========================================
-        // 6. DO'KON YO'Q
-        // ==========================================
-
         if (storeResponse.status === 404) {
           log("Do'kon hali mavjud emas");
 
@@ -266,10 +240,6 @@ export default function Home() {
 
           return;
         }
-
-        // ==========================================
-        // 7. STORE OTHER ERROR
-        // ==========================================
 
         throw new Error(
           `Do'kon API xatosi: HTTP ${storeResponse.status}`
