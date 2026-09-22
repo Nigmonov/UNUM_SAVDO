@@ -8,10 +8,19 @@ from app.api.agent import router as agent_router
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="UNUM SAVDO API", version="0.1.0")
+app = FastAPI(
+    title="UNUM SAVDO API",
+    version="0.1.0"
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN],
+    allow_origins=[
+
+        "http://localhost:3100",
+        "http://127.0.0.1:3100",
+        "https://unum-savdo.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,6 +33,10 @@ app.include_router(sales.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(agent_router, prefix="/api")
 
+
 @app.get("/")
 def root():
-    return {"name": "UNUM SAVDO", "status": "running"}
+    return {
+        "name": "UNUM SAVDO",
+        "status": "running"
+    }
