@@ -7,153 +7,42 @@ const API =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://127.0.0.1:8000/api';
 
-const DEV_MODE =
-  process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-
-const TELEGRAM_BOT_URL =
-  'https://t.me/UnumSavdoUzBot?startapp';
-
-export default function Login() {
+export default function Home() {
   const router = useRouter();
 
-  const [err, setErr] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('Telegram tekshirilmoqda...');
 
-  // ---------------------------------------
-  // Store tekshirish
-  // ---------------------------------------
-  async function checkStore(token) {
-    try {
-      const res = await fetch(`${API}/stores/me`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        const store = await res.json();
-
-        localStorage.setItem(
-          'unum_store_id',
-          String(store.id)
-        );
-
-        router.replace('/dashboard');
-        return;
-      }
-
-      if (res.status === 404) {
-        localStorage.removeItem('unum_store_id');
-        router.replace('/onboarding');
-        return;
-      }
-
-      if (res.status === 401) {
-        localStorage.removeItem('access_token');
-        throw new Error('Login muddati tugagan');
-      }
-
-      const data = await res.json().catch(() => ({}));
-
-      throw new Error(
-        data.detail ||
-        "Do‘kon ma'lumotini tekshirib bo‘lmadi"
-      );
-
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // ---------------------------------------
-  // Telegram Mini App login
-  // ---------------------------------------
-  async function telegramLogin() {
-    setErr('');
-    setLoading(true);
-
+  async function loginWithTelegram() {
     try {
       const tg = window.Telegram?.WebApp;
 
-      /*
-       * 1. Agar UNUM Telegram Mini App ichida
-       * ochilgan bo‘lsa, initData mavjud bo‘ladi.
-       */
-      if (tg?.initData) {
-        tg.ready();
-        tg.expand();
-
-        const initData = tg.initData;
-
-        const res = await fetch(
-          `${API}/auth/telegram-miniapp`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              init_data: initData,
-            }),
-          }
-        );
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          throw new Error(
-            data.detail ||
-            'Telegram orqali kirib bo‘lmadi'
-          );
-        }
-
-        if (!data.access_token) {
-          throw new Error(
-            'Server access token qaytarmadi'
-          );
-        }
-
-        localStorage.setItem(
-          'access_token',
-          data.access_token
-        );
-
-        await checkStore(data.access_token);
-
+      if (!tg) {
+        setStatus('Telegram ilovasida oching');
         return;
       }
 
-      /*
-       * 2. Agar APK yoki oddiy browser bo‘lsa,
-       * Telegram'ni ochamiz.
-       */
-      window.location.href = TELEGRAM_BOT_URL;
+      tg.ready();
+      tg.expand();
 
-    } catch (error) {
-      console.error('Telegram login error:', error);
+      const initData = tg.initData;
 
-      setErr(
-        error?.message ||
-        'Telegram orqali kirishda xatolik yuz berdi'
-      );
+      if (!initData) {
+        setStatus('Telegram maʼlumoti olinmadi');
+        return;
+      }
 
-      setLoading(false);
-    }
-  }
+      setStatus('Telegram orqali kirilmoqda...');
 
-  // ---------------------------------------
-  // Development login
-  // ---------------------------------------
-  async function devLogin() {
-    setErr('');
-    setLoading(true);
-
-    try {
       const res = await fetch(
-        `${API}/auth/dev-login`,
+        `${API}/auth/telegram-miniapp`,
         {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            init_data: initData,
+          }),
         }
       );
 
@@ -162,7 +51,7 @@ export default function Login() {
       if (!res.ok) {
         throw new Error(
           data.detail ||
-          'Test login ishlamadi'
+          'Telegram orqali kirib bo‘lmadi'
         );
       }
 
@@ -177,101 +66,83 @@ export default function Login() {
         data.access_token
       );
 
-      await checkStore(data.access_token);
-
-    } catch (error) {
-      console.error('Dev login error:', error);
-
-      setErr(
-        error?.message ||
-        'Test login ishlamadi'
+      // Do‘konni tekshiramiz
+      const storeRes = await fetch(
+        `${API}/stores/me`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${data.access_token}`,
+          },
+        }
       );
 
-      setLoading(false);
+      if (storeRes.ok) {
+        const store = await storeRes.json();
+
+        localStorage.setItem(
+          'unum_store_id',
+          String(store.id)
+        );
+
+        router.replace('/dashboard');
+        return;
+      }
+
+      if (storeRes.status === 404) {
+        localStorage.removeItem('unum_store_id');
+
+        router.replace('/onboarding');
+        return;
+      }
+
+      throw new Error(
+        'Do‘kon maʼlumotini tekshirib bo‘lmadi'
+      );
+
+    } catch (error) {
+      console.error(
+        'Telegram login error:',
+        error
+      );
+
+      setStatus(
+        error?.message ||
+        'Telegram orqali kirishda xatolik'
+      );
     }
   }
 
-  // ---------------------------------------
-  // Sahifa ochilganda
-  // ---------------------------------------
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
+    const timer = setTimeout(() => {
+      loginWithTelegram();
+    }, 300);
 
-    /*
-     * Faqat haqiqiy Telegram Mini App ichida
-     * avtomatik login qilamiz.
-     */
-    if (tg?.initData) {
-      const timer = setTimeout(() => {
-        telegramLogin();
-      }, 300);
-
-      return () => clearTimeout(timer);
-    }
-
-    /*
-     * APK / oddiy browserda avtomatik Telegram
-     * ochilmaydi.
-     *
-     * Foydalanuvchi tugmani o‘zi bosadi.
-     */
-    setLoading(false);
+    return () => clearTimeout(timer);
   }, []);
 
-  // ---------------------------------------
-  // UI
-  // ---------------------------------------
   return (
-    <div className="authWrap">
-      <div className="authCard">
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+      }}
+    >
+      <div
+        style={{
+          textAlign: 'center',
+          maxWidth: '420px',
+        }}
+      >
+        <h1>UNUM SAVDO</h1>
 
-        <div className="brand">
-          <span className="brandMark">
-            U
-          </span>
-
-          UNUM SAVDO
-        </div>
-
-        <h1>
-          UNUM’ga kiring.
-        </h1>
-
-        <p className="muted">
-          Telegram orqali xavfsiz kirish
+        <p>
+          {status}
         </p>
-
-        {err && (
-          <div className="alert errorBox">
-            {err}
-          </div>
-        )}
-
-        <button
-          className="btn btnTelegram"
-          onClick={telegramLogin}
-          disabled={loading}
-        >
-          <span className="telegramIcon">
-            ➤
-          </span>
-
-          {loading
-            ? 'Kirilmoqda...'
-            : 'Telegram orqali davom etish'}
-        </button>
-
-        {DEV_MODE && (
-          <button
-            className="btn btnGhost devLogin"
-            onClick={devLogin}
-            disabled={loading}
-          >
-            Lokal test rejimida kirish
-          </button>
-        )}
-
       </div>
-    </div>
+    </main>
   );
 }
