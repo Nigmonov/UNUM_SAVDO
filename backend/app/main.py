@@ -16,7 +16,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
         "http://localhost:3100",
         "http://127.0.0.1:3100",
         "https://unum-savdo.vercel.app",
@@ -25,7 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(auth.router, prefix="/api")
 app.include_router(stores.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
