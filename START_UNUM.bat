@@ -35,10 +35,10 @@ echo [2/2] Frontend alohida oynada ishga tushmoqda...
 start "UNUM Frontend" cmd /k call "%~dp0frontend\run_frontend.bat"
 
 timeout /t 7 /nobreak >nul
-start "" "http://localhost:3000"
+start "" "http://localhost:3100"
 
 echo.
-echo Frontend : http://localhost:3000
+echo Frontend : http://localhost:3100
 echo Backend  : http://127.0.0.1:8000
 echo API Docs : http://127.0.0.1:8000/docs
 echo.

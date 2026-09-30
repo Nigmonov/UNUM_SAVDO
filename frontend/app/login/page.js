@@ -3,151 +3,78 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API =
-  'https://unum-savdo-t1lg-lcv1ybzf-dilshodnigmonov8-2576.vercel.app/api';
+const API = 'http://127.0.0.1:8000/api';
 
 export default function Home() {
   const router = useRouter();
 
-  const [status, setStatus] = useState('Boshlanmoqda...');
-  const [debug, setDebug] = useState([]);
+  const [status, setStatus] = useState(
+    'Local test rejimida kirilmoqda...'
+  );
 
-  function log(message) {
-    console.log(message);
-    setDebug((prev) => [...prev, message]);
-  }
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
-    async function login() {
+    async function devLogin() {
       try {
-        log(`Frontend: ${window.location.origin}`);
-        log(`API: ${API}`);
+        setStatus('Backendga ulanilmoqda...');
+        setError('');
 
-        setStatus('Telegram tekshirilmoqda...');
+        console.log('API:', API);
 
-        const tg = window.Telegram?.WebApp;
+        // ==========================================
+        // 1. LOCAL DEV LOGIN
+        // ==========================================
 
-        if (!tg) {
-          throw new Error(
-            'Telegram WebApp topilmadi'
-          );
-        }
-
-        tg.ready();
-        tg.expand();
-
-        log(`Telegram version: ${tg.version || 'unknown'}`);
-        log(`Telegram platform: ${tg.platform || 'unknown'}`);
-        log(
-          `initData uzunligi: ${tg.initData?.length || 0}`
-        );
-
-        if (!tg.initData) {
-          throw new Error(
-            'Telegram initData kelmadi'
-          );
-        }
-
-        setStatus('Backend tekshirilmoqda...');
-
-        log('Backend GET / so‘rovi yuborilmoqda...');
-
-        let healthResponse;
-
-        try {
-          healthResponse = await fetch(`${API}/`, {
-            method: 'GET',
+        const loginResponse = await fetch(
+          `${API}/auth/dev-login`,
+          {
+            method: 'POST',
             headers: {
+              'Content-Type': 'application/json',
               Accept: 'application/json',
             },
-          });
-        } catch (error) {
-          log(`BACKEND NETWORK ERROR: ${error.message}`);
+          }
+        );
+
+        const loginText = await loginResponse.text();
+
+        console.log(
+          'DEV LOGIN STATUS:',
+          loginResponse.status
+        );
+
+        console.log(
+          'DEV LOGIN RESPONSE:',
+          loginText
+        );
+
+        if (!loginResponse.ok) {
+          let detail = loginText;
+
+          try {
+            const data = JSON.parse(loginText);
+            detail = data.detail || loginText;
+          } catch {}
 
           throw new Error(
-            `Backendga ulanib bo‘lmadi: ${error.message}`
+            `Dev login xatosi: HTTP ${loginResponse.status} - ${detail}`
           );
         }
 
-        log(
-          `Backend HTTP status: ${healthResponse.status}`
-        );
-
-        const healthText =
-          await healthResponse.text();
-
-        log(
-          `Backend response: ${healthText.slice(0, 300)}`
-        );
-
-        if (!healthResponse.ok) {
-          throw new Error(
-            `Backend / javobi: HTTP ${healthResponse.status}`
-          );
-        }
-
-        setStatus(
-          'Telegram akkaunt tekshirilmoqda...'
-        );
-
-        log(
-          'POST /auth/telegram-miniapp yuborilmoqda...'
-        );
-
-        let authResponse;
+        let loginData;
 
         try {
-          authResponse = await fetch(
-            `${API}/auth/telegram-miniapp`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-              },
-              body: JSON.stringify({
-                init_data: tg.initData,
-              }),
-            }
-          );
-        } catch (error) {
-          log(`AUTH NETWORK ERROR: ${error.message}`);
-
-          throw new Error(
-            `Auth request yuborilmadi: ${error.message}`
-          );
-        }
-
-        log(
-          `AUTH HTTP status: ${authResponse.status}`
-        );
-
-        const authText =
-          await authResponse.text();
-
-        log(
-          `AUTH response: ${authText.slice(0, 500)}`
-        );
-
-        if (!authResponse.ok) {
-          throw new Error(
-            `Telegram login HTTP ${authResponse.status}: ${authText}`
-          );
-        }
-
-        let authData;
-
-        try {
-          authData = JSON.parse(authText);
+          loginData = JSON.parse(loginText);
         } catch {
           throw new Error(
             'Backend JSON qaytarmadi'
           );
         }
 
-        const token = authData.access_token;
+        const token = loginData.access_token;
 
         if (!token) {
           throw new Error(
@@ -155,111 +82,149 @@ export default function Home() {
           );
         }
 
-        log('JWT token olindi');
+        console.log(
+          'ACCESS TOKEN OLINDI'
+        );
 
+        // Tokenni saqlaymiz
         localStorage.setItem(
           'access_token',
           token
         );
 
-        setStatus("Do'kon tekshirilmoqda...");
+        setStatus(
+          "Akkaunt muvaffaqiyatli. Do'kon tekshirilmoqda..."
+        );
 
-        log('GET /stores/me yuborilmoqda...');
+        // ==========================================
+        // 2. STORE CHECK
+        // ==========================================
 
-        let storeResponse;
-
-        try {
-          storeResponse = await fetch(
-            `${API}/stores/me`,
-            {
-              method: 'GET',
-              headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-        } catch (error) {
-          log(
-            `STORE NETWORK ERROR: ${error.message}`
-          );
-
-          throw new Error(
-            `Do'kon requesti yuborilmadi: ${error.message}`
-          );
-        }
-
-        log(
-          `STORE HTTP status: ${storeResponse.status}`
+        const storeResponse = await fetch(
+          `${API}/stores/me`,
+          {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const storeText =
           await storeResponse.text();
 
-        log(
-          `STORE response: ${storeText.slice(0, 500)}`
+        console.log(
+          'STORE STATUS:',
+          storeResponse.status
         );
 
+        console.log(
+          'STORE RESPONSE:',
+          storeText
+        );
+
+        // ==========================================
+        // 3. STORE EXISTS
+        // ==========================================
+
         if (storeResponse.ok) {
-          const store = JSON.parse(storeText);
+          let store;
 
-          log(
-            `Do'kon topildi: ${store.name || store.id}`
+          try {
+            store = JSON.parse(storeText);
+          } catch {
+            throw new Error(
+              "Do'kon ma'lumotlari JSON emas"
+            );
+          }
+
+          console.log(
+            "DO'KON TOPILDI:",
+            store
           );
 
-          localStorage.setItem(
-            'unum_store_id',
-            String(store.id)
-          );
+          if (store.id) {
+            localStorage.setItem(
+              'unum_store_id',
+              String(store.id)
+            );
+          }
 
           setStatus(
-            "Do'kon topildi. Dashboardga o'tilmoqda..."
+            "Do'kon topildi. Dashboard ochilmoqda..."
           );
 
-          setTimeout(() => {
-            router.replace('/dashboard');
-          }, 500);
+          if (!cancelled) {
+            setTimeout(() => {
+              router.replace('/dashboard');
+            }, 500);
+          }
 
           return;
         }
 
+        // ==========================================
+        // 4. STORE DOES NOT EXIST
+        // ==========================================
+
         if (storeResponse.status === 404) {
-          log("Do'kon hali mavjud emas");
+          console.log(
+            "DO'KON TOPILMADI"
+          );
 
           localStorage.removeItem(
             'unum_store_id'
           );
 
           setStatus(
-            "Do'kon topilmadi. Ro'yxatdan o'tish sahifasiga o'tilmoqda..."
+            "Do'kon topilmadi. Ro'yxatdan o'tish sahifasi ochilmoqda..."
           );
 
-          setTimeout(() => {
-            router.replace('/onboarding');
-          }, 500);
+          if (!cancelled) {
+            setTimeout(() => {
+              router.replace('/onboarding');
+            }, 500);
+          }
 
           return;
         }
 
+        // ==========================================
+        // 5. OTHER STORE ERROR
+        // ==========================================
+
+        let detail = storeText;
+
+        try {
+          const data = JSON.parse(storeText);
+          detail = data.detail || storeText;
+        } catch {}
+
         throw new Error(
-          `Do'kon API xatosi: HTTP ${storeResponse.status}`
+          `Do'kon API xatosi: HTTP ${storeResponse.status} - ${detail}`
         );
 
-      } catch (error) {
+      } catch (err) {
         console.error(
-          'UNUM SAVDO ERROR:',
-          error
+          'LOCAL DEV LOGIN ERROR:',
+          err
         );
 
         if (!cancelled) {
           setStatus(
-            `XATOLIK: ${error.message}`
+            'Local login ishlamadi'
+          );
+
+          setError(
+            err?.message ||
+              'Nomaʼlum xatolik'
           );
         }
       }
     }
 
-    login();
+    devLogin();
 
     return () => {
       cancelled = true;
@@ -270,61 +235,59 @@ export default function Home() {
     <main
       style={{
         minHeight: '100vh',
-        background: '#07182b',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background:
+          'linear-gradient(135deg, #07182b, #0d2945)',
         color: '#fff',
-        padding: '40px 20px',
-        fontFamily: 'Arial, sans-serif',
+        padding: '20px',
       }}
     >
       <div
         style={{
-          maxWidth: '700px',
-          margin: '100px auto',
+          width: '100%',
+          maxWidth: '500px',
+          textAlign: 'center',
         }}
       >
         <h1
           style={{
-            textAlign: 'center',
             fontSize: '40px',
-            marginBottom: '20px',
+            fontWeight: '800',
+            marginBottom: '15px',
           }}
         >
           UNUM SAVDO
         </h1>
 
-        <div
+        <p
           style={{
-            background: '#10243b',
-            borderRadius: '12px',
-            padding: '25px',
+            fontSize: '18px',
+            opacity: 0.85,
+            marginBottom: '25px',
           }}
         >
-          <h2
-            style={{
-              fontSize: '20px',
-              marginBottom: '20px',
-            }}
-          >
-            {status}
-          </h2>
+          {status}
+        </p>
 
+        {error && (
           <div
             style={{
-              background: '#06111f',
-              borderRadius: '8px',
+              background: '#3b1720',
+              border: '1px solid #8f3345',
+              borderRadius: '10px',
               padding: '15px',
-              fontSize: '14px',
-              lineHeight: '1.7',
+              color: '#ffb8c2',
+              textAlign: 'left',
               wordBreak: 'break-word',
             }}
           >
-            {debug.map((item, index) => (
-              <div key={index}>
-                {item}
-              </div>
-            ))}
+            <strong>Xatolik:</strong>
+            <br />
+            {error}
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
