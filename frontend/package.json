@@ -11,9 +11,8 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
-    "next": "^15.5.18",
+    "next": "^15.5.26",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   }
 }
-
